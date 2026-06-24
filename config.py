@@ -27,5 +27,7 @@ class Config:
         "accuracy": "N/A",
         "recall": "N/A",
         "f1_score": "N/A",
-        "model_name": "RandomForestClassifier",
+        "model_name": "LogisticRegression",
     }
+    
+print(BASE_DIR, "yes")

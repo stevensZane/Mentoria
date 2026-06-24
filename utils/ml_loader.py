@@ -37,10 +37,33 @@ class ModelLoader:
         try:
             self.meta = joblib.load(path)
             if isinstance(self.meta, dict):
+                # Format attendu récent : {'feature_order': [...], 'metrics': {...}}
                 if "feature_order" in self.meta:
                     self.feature_order = self.meta["feature_order"]
-                if "metrics" in self.meta:
+
+                if "metrics" in self.meta and isinstance(self.meta["metrics"], dict):
                     self.metrics = self.meta["metrics"]
+                else:
+                    # Support d'un ancien format de métadonnées (ex : keys 'features','f1','precision',...)
+                    # On mappe doucement les champs disponibles vers la structure attendue.
+                    mapped = {
+                        "model_name": self.meta.get("model_name", self.metrics.get("model_name")),
+                        "accuracy": self.meta.get("accuracy", self.metrics.get("accuracy", "N/A")),
+                        "recall": self.meta.get("recall", self.metrics.get("recall", "N/A")),
+                        "f1_score": self.meta.get("f1", self.meta.get("f1_score", self.metrics.get("f1_score", "N/A"))),
+                    }
+                    # Remonter d'autres métriques si présentes
+                    if "precision" in self.meta:
+                        mapped["precision"] = self.meta.get("precision")
+                    if "roc_auc" in self.meta:
+                        mapped["roc_auc"] = self.meta.get("roc_auc")
+
+                    self.metrics = mapped
+
+                # Ancien nom de la liste de features -> 'features'
+                if "features" in self.meta and "feature_order" not in self.meta:
+                    self.feature_order = self.meta.get("features", self.feature_order)
+
             print(f"[OK] Métadonnées chargées depuis {path}")
         except Exception as e:
             print(f"[ATTENTION] model_meta.joblib non chargé ({path}) : {e}")
